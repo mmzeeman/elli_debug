@@ -17,7 +17,7 @@
 % @doc Enable or disable a debug access log
 -spec access_log(boolean()) -> ok.
 access_log(Bool) ->
-	ok = application:set_env(elli_debug, debug_log, Bool).
+	ok = application:set_env(elli_debug, access_log, Bool).
 
 
 %%
@@ -44,9 +44,9 @@ handle_event(request_complete, [Request,
                                 _Timings], _) -> 
 	case application:get_env(elli_debug, access_log) of
 		{ok, true} ->
-			io:fwrite(standard_error, "~p: ~p - ~p~n", [ResponseCode, 
+			io:fwrite(standard_error, "~p ~p - ~p~n", [ResponseCode, 
 				elli_request:method(Request),
-				elli_request:path(Request)]);
+				elli_request:raw_path(Request)]);
 		_ ->
 			ok
 	end;
