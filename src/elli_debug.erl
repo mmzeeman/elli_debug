@@ -42,12 +42,12 @@ handle_event(elli_startup, [], _) ->
 handle_event(request_complete, [Request,
                                 ResponseCode, _ResponseHeaders, _ResponseBody,
                                 _Timings], _) -> 
-	case application:get_env(elli_debug, access_log, false) of
+	case application:get_env(elli_debug, access_log) of
 		true ->
 			io:fwrite(standard_error, "~p: ~p - ~p~n", [ResponseCode, 
 				elli_request:method(Request),
 				elli_request:path(Request)]);
-		false ->
+		_ ->
 			ok
 	end;
 
