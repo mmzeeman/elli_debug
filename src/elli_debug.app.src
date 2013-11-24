@@ -1,0 +1,11 @@
+{application, elli_debug,
+ [
+  {description, "Elli debug middleware"},
+  {vsn, "1.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.
