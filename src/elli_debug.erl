@@ -43,7 +43,7 @@ handle_event(request_complete, [Request,
                                 ResponseCode, _ResponseHeaders, _ResponseBody,
                                 _Timings], _) -> 
 	case application:get_env(elli_debug, access_log) of
-		true ->
+		{ok, true} ->
 			io:fwrite(standard_error, "~p: ~p - ~p~n", [ResponseCode, 
 				elli_request:method(Request),
 				elli_request:path(Request)]);
