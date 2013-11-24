@@ -3,7 +3,22 @@
 %%
 
 -module(elli_debug).
+
+
+-export([access_log/1]).
+
 -export([handle/2, handle_event/3]).
+
+
+%%
+%% Api
+%%
+
+% @doc Enable or disable a debug access log
+-spec access_log(boolean()) -> ok.
+access_log(Bool) ->
+	ok = application:set_env(elli_debug, debug_log, Bool).
+
 
 %%
 %% ELLI EVENT CALLBACKS
@@ -16,33 +31,36 @@ handle(_,_) -> ignore.
 %% implementing a middleware, you can use it to spawn processes,
 %% create ETS tables or start supervised processes in a supervisor
 %% tree.
-handle_event(elli_startup, [], _) -> ok;
+handle_event(elli_startup, [], _) -> 
+	ok;
 
 %% request_complete fires *after* Elli has sent the response to the
 %% client. Timings contains timestamps of events like when the
 %% connection was accepted, when request parsing finished, when the
 %% user callback returns, etc. This allows you to collect performance
 %% statistics for monitoring your app.
-handle_event(request_complete, [_Request,
-                                _ResponseCode, _ResponseHeaders, _ResponseBody,
-                                _Timings], _) -> ok;
+handle_event(request_complete, [Request,
+                                ResponseCode, _ResponseHeaders, _ResponseBody,
+                                _Timings], _) -> 
+	case application:get_env(elli_debug, access_log, false) of
+		true ->
+			io:fwrite(standard_error, "~p: ~p - ~p~n", [ResponseCode, 
+				elli_request:method(Request),
+				elli_request:path(Request)]);
+		false ->
+			ok
+	end;
 
 %% request_throw, request_error and request_exit events are sent if
 %% the user callback code throws an exception, has an error or
 %% exits. After triggering this event, a generated response is sent to
 %% the user.
-handle_event(request_throw, [Request, Exception, Stacktrace], _) -> 
-	io:fwrite(standard_error, "request_throw: ~p~nRequest ----: ~p~nStacktrace ----: ~p~n", 
-		[Exception, Request, Stacktrace]),
-	ok;
+handle_event(request_throw, [Request, Exception, Stacktrace], _) ->
+	write(request_throw, Exception, Request, Stacktrace);
 handle_event(request_error, [Request, Exception, Stacktrace], _) -> 
-	io:fwrite(standard_error, "request_error: ~p~nRequest ----: ~p~nStacktrace ----: ~p~n", 
-		[Exception, Request, Stacktrace]),
-	ok;
+	write(request_error, Exception, Request, Stacktrace);
 handle_event(request_exit, [Request, Exception, Stacktrace], _) -> 
-	io:fwrite(standard_exit, "request_exit: ~p~nRequest ----: ~p~nStacktrace ----: ~p~n", 
-		[Exception, Request, Stacktrace]),
-	ok;
+	write(request_exit, Exception, Request, Stacktrace);
 
 
 %% chunk_complete fires when a chunked response is completely
@@ -88,3 +106,12 @@ handle_event(bad_request, [_Reason], _) -> ok;
 %% file_error is sent when the user wants to return a file as a
 %% response, but for some reason it cannot be opened.
 handle_event(file_error, [_ErrorReason], _) -> ok.
+
+
+%%
+write(What, Exception, Request, Stacktrace) ->
+    io:fwrite(standard_exit, "~p: ~p~nRequest ----: ~p~nStacktrace ----: ~p~n", 
+		[What, Exception, Request, Stacktrace]),
+	ok.
+
+
